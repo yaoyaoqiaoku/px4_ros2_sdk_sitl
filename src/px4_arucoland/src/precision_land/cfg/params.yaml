@@ -1,0 +1,47 @@
+precision_land:
+  ros__parameters:
+    # 基本控制参数
+    descent_vel: 0.5               # 下降速度 [m/s]
+    vel_p_gain: 1.5                # 速度控制P增益
+    vel_i_gain: 0.0                # 速度控制I增益
+    max_velocity: 0.5              # 最大水平速度 [m/s]
+    target_timeout: 3.0            # 目标丢失超时时间 [s]
+    delta_position: 0.50           # 位置到达阈值 [m]
+    delta_velocity: 0.50           # 速度到达阈值 [m/s]
+    
+    # 双码参数
+    aruco_id_large: 49             # 大码ID
+    aruco_id_small: 50             # 小码ID
+    height_threshold_switch: 3.0   # 大码切换到小码的高度阈值 [m]
+    small_tag_recover_timeout: 5.0 # 小码丢失后的恢复超时时间 [s]
+    height_threshold_low: 3.0      # 最终精控降落的高度阈值 [m] 
+    height_threshold_recover: 3.0  # 小码丢失后回升的高度 [m] 
+
+    # 激光高度传感器参数
+    laser_min_valid_distance: 0.02 # 激光最小有效距离 [m]
+    laser_max_valid_distance: 12.0 # 激光最大有效距离 [m] [m]
+    laser_buffer_size: 5           # 激光高度滑动平均窗口大小
+    land_mode_switch_height: 0.5   # 允许切换到Land模式的最低高度 [m] 
+
+    # 高度融合参数
+    visual_weight: 0.5             # 视觉高度权重 
+    laser_weight: 0.5              # 激光高度权重
+
+    # 日志发布频率
+    log_publish_rate: 10.0         # 日志发布频率 [Hz]
+    
+    # 丢失确认与回升步长参数
+    small_loss_confirm_time: 3.0   # 小码丢失确认时间（秒）
+    recover_step_height: 0.5       # 每次回升步长（米）
+    
+    # yaw控制参数
+    max_yaw_speed: 0.3             # Yaw 最大偏航速度 [rad/s]（注意单位为弧度/秒）
+    yaw_kp: 0.6                    # Yaw P 增益（kp），用于产生期望角速率 = kp * angle_error
+    yaw_deadband: 0.017            # Yaw 死区（rad），误差小于此值视为已对准，建议 ~0.017 rad (~1°)
+    yaw_alpha: 0.8                 # Yaw 低通滤波系数（0-1），用于平滑角速率命令
+
+    # 相机位姿偏置（在机体坐标系下，单位：米）
+    camera_offset_x: 0.0          # 相机在机体前向轴上的偏移（正为机头方向）
+    camera_offset_y: 0.0          # 相机在机体右向轴上的偏移（正为机右侧）
+    camera_offset_z: -0.1         # 相机在机体向下方向的偏移（NED/机体 convention 中通常为负值）
+      

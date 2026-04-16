@@ -1,0 +1,11 @@
+# aruco_tracker.yaml
+aruco_tracker_node:
+  ros__parameters:
+    # ArUco标记ID配置
+    aruco_id_large: 49             # 大码ID（需与实际打印的标记一致）
+    aruco_id_small: 50             # 小码ID（需与实际打印的标记一致）
+    # 字典类型（对应OpenCV预定义字典，参考代码中注释的枚举值）
+    dictionary: 7                  # 7 = DICT_5X5_1000（5x5格子，1000个标记）
+    # 标记实际尺寸（单位：米，需精确测量打印的标记边长）
+    marker_size_large: 0.25        # 大码边长
+    marker_size_small: 0.036       # 小码边长

@@ -1,0 +1,13 @@
+yolov8_detector:
+  ros__parameters:
+    # YOLOv8 模型配置
+    model_path: "/home/liuyao/px4_ros2_sdk_sitl/yolov8n.pt"  # 或使用 yolov8s, yolov8m 等
+    confidence_threshold: 0.5
+    nms_threshold: 0.45
+    target_class_id: 0  # -1为所有目标，也可指定如0(person), 1(car)等
+
+    # 相机内参（需根据实际相机标定）
+    fx: 1280.0
+    fy: 1280.0
+    cx: 640.0
+    cy: 360.0

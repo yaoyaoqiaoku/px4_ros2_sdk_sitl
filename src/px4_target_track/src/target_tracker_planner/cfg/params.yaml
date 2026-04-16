@@ -1,0 +1,15 @@
+target_tracker_planner:
+  ros__parameters:
+    # 制御参数
+    max_horizontal_speed: 3.0      # m/s
+    max_vertical_speed: 1.0        # m/s
+    tracking_distance: 2.0         # m（保持的目标距离）
+    yaw_rate: 0.5                  # rad/s
+    target_timeout: 3.0            # 目标丢失超时时间 (s)
+    velocity_kp: 0.5               # 速度控制P增益
+    velocity_kd: 0.1               # 速度控制D增益
+    
+    # 相机安装参数
+    camera_offset_x: 0.0           # 相机在机体前后方向的偏置 (m)
+    camera_offset_y: 0.0           # 相机在机体左右方向的偏置 (m)
+    camera_offset_z: -0.1          # 相机在机体垂直方向的偏置 (m)
