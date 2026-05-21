@@ -218,10 +218,8 @@ void MQTTMission::process_mqtt_mission(const std::string& /*topic*/, const std::
 		// Check if it's a waypoint mission or trigger command
 		if (mission_data.contains("waypoints")) {
 			handle_mission_waypoints(mission_data);
-		} else if (mission_data.contains("trigger") || mission_data.contains("action")) {
-			handle_mission_trigger(mission_data);
 		} else {
-			RCLCPP_WARN(this->get_logger(), "Unknown mission message format");
+			RCLCPP_WARN(this->get_logger(), "Unknown mission message format (expecting 'waypoints')");
 		}
 	} catch (const json::parse_error& e) {
 		RCLCPP_ERROR(this->get_logger(), "Failed to parse JSON mission: %s", e.what());
@@ -241,7 +239,7 @@ void MQTTMission::handle_mission_waypoints(const json& mission_data)
 		std::vector<float> waypoint_data;
 		for (const auto& wp : mission_data["waypoints"]) {
 			std::vector<float> wp_vec = parse_waypoint(wp);
-			if (wp_vec.size() == 9) {
+			if (wp_vec.size() == 10) {
 				waypoint_data.insert(waypoint_data.end(), wp_vec.begin(), wp_vec.end());
 			} else {
 				RCLCPP_ERROR(this->get_logger(), "Invalid waypoint format, skipping");
@@ -302,11 +300,11 @@ std::vector<float> MQTTMission::parse_waypoint(const json& wp)
 	// Expected format: [frame, command, lat, lon, alt, param1, param2, param3, param4]
 	// Or: {"frame": 3, "command": 16, "lat": 47.397742, ...}
 	
-	if (wp.is_array() && wp.size() == 9) {
+	if (wp.is_array() && (wp.size() == 9 || wp.size() == 10)) {
+		// 支持可选的第10个元素 speed
 		for (size_t i = 0; i < wp.size(); i++) {
 			// 针对数组形式的 param4（第9个元素，索引8）做特殊处理
 			if (i == 8) {
-				// 如果是 null/字符串"NaN"，转为 NAN；否则取数值
 				if (wp[i].is_null() || (wp[i].is_string() && wp[i].get<std::string>() == "NaN")) {
 					waypoint.push_back(NAN);
 				} else {
@@ -314,6 +312,19 @@ std::vector<float> MQTTMission::parse_waypoint(const json& wp)
 				}
 			} else {
 				waypoint.push_back(wp[i].get<float>());
+			}
+		}
+		// 如果数组只有9个元素，补充 speed 为 NAN；如果有10个元素，取第10个为 speed
+		if (wp.size() == 9) {
+			waypoint.push_back(NAN);
+		} else {
+			// 第10个元素为 speed
+			if (wp[9].is_number()) {
+				waypoint.push_back(wp[9].get<float>());
+			} else if (wp[9].is_null()) {
+				waypoint.push_back(NAN);
+			} else {
+				waypoint.push_back(NAN);
 			}
 		}
 	} else if (wp.is_object()) {
@@ -348,6 +359,13 @@ std::vector<float> MQTTMission::parse_waypoint(const json& wp)
 		}
 		// 如果 param4 字段缺失 → 直接设为 NAN（符合 MAVLink 默认值要求）
 		else {
+			waypoint.push_back(NAN);
+		}
+		// 解析可选的 speed 字段（与 param4 逻辑独立）
+		if (wp.contains("speed") && wp["speed"].is_number()) {
+			waypoint.push_back(wp["speed"].get<float>());
+		} else {
+			// 缺省为 NAN（表示未指定）
 			waypoint.push_back(NAN);
 		}
 	}

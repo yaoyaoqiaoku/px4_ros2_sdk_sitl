@@ -20,6 +20,7 @@
 #include <iomanip>
 #include <cmath>
 #include <sstream>
+#include <array>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
@@ -458,23 +459,66 @@ void PX4Estimator::publish_state()
     }
     
     // Attitude (Euler angles in degrees and quaternion)
+    // Note: PX4 provides attitude in NED (earth) / FRD (body). Convert to
+    // ENU (earth) / FLU (body) before publishing. Conversion implemented
+    // as q' = p * q * s where
+    //   s = quat(FRU<-FLU) = rotation 180deg about x -> [0,1,0,0]
+    //   p = quat(ENU<-NED) = Rz(90deg) * s  -> computed below
     if (attitude_received_) {
         double q0 = vehicle_attitude_.q[0];
         double q1 = vehicle_attitude_.q[1];
         double q2 = vehicle_attitude_.q[2];
         double q3 = vehicle_attitude_.q[3];
-        
-        double roll = std::atan2(2*(q0*q1 + q2*q3), 1 - 2*(q1*q1 + q2*q2));
-        double sin_pitch = 2*(q0*q2 - q3*q1);
+
+        // quaternion helpers (w,x,y,z)
+        auto quat_mul = [](const std::array<double,4> &a, const std::array<double,4> &b) {
+            std::array<double,4> r;
+            r[0] = a[0]*b[0] - a[1]*b[1] - a[2]*b[2] - a[3]*b[3];
+            r[1] = a[0]*b[1] + a[1]*b[0] + a[2]*b[3] - a[3]*b[2];
+            r[2] = a[0]*b[2] - a[1]*b[3] + a[2]*b[0] + a[3]*b[1];
+            r[3] = a[0]*b[3] + a[1]*b[2] - a[2]*b[1] + a[3]*b[0];
+            return r;
+        };
+
+        auto quat_normalize = [](std::array<double,4> &q) {
+            double n = std::sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3]);
+            if (n > 0.0) {
+                q[0] /= n; q[1] /= n; q[2] /= n; q[3] /= n;
+            }
+        };
+
+        std::array<double,4> q_orig = {q0, q1, q2, q3};
+
+        // s: FRD <- FLU  (i.e. FRD = S * FLU) -> rotation 180deg about x
+        const std::array<double,4> q_s = {0.0, 1.0, 0.0, 0.0};
+        // p: ENU <- NED = Rz(90deg) * S  -> quaternion computed as q_pz * q_s
+        const double c45 = std::sqrt(2.0) / 2.0; // cos(45deg) = sin(45deg)
+        const std::array<double,4> q_pz = {c45, 0.0, 0.0, c45}; // Rz(90deg)
+        const std::array<double,4> q_p = quat_mul(q_pz, q_s);
+
+        // q' = p * q * s
+        auto tmp = quat_mul(q_orig, q_s);
+        auto q_conv = quat_mul(q_p, tmp);
+        quat_normalize(q_conv);
+
+        // compute Euler (roll/pitch/yaw) from converted quaternion
+        double qcw = q_conv[0];
+        double qcx = q_conv[1];
+        double qcy = q_conv[2];
+        double qcz = q_conv[3];
+
+        double roll = std::atan2(2*(qcw*qcx + qcy*qcz), 1 - 2*(qcx*qcx + qcy*qcy));
+        double sin_pitch = 2*(qcw*qcy - qcz*qcx);
         sin_pitch = std::max(-1.0, std::min(1.0, sin_pitch));
         double pitch = std::asin(sin_pitch);
-        double yaw = std::atan2(2*(q0*q3 + q1*q2), 1 - 2*(q2*q2 + q3*q3));
-        
-        j["attitude_rpy"] = {roll * 180.0 / M_PI, 
-                             pitch * 180.0 / M_PI, 
-                             yaw * 180.0 / M_PI};
+        double yaw = std::atan2(2*(qcw*qcz + qcx*qcy), 1 - 2*(qcy*qcy + qcz*qcz));
+
+        j["attitude_rpy"] = {roll * 180.0 / M_PI,
+                              pitch * 180.0 / M_PI,
+                              yaw * 180.0 / M_PI};
         j["attitude"] = {roll, pitch, yaw};
-        j["quaternion"] = {q0, q1, q2, q3};
+
+        j["quaternion"] = {q_conv[0], q_conv[1], q_conv[2], q_conv[3]};
     }
     
     // GPS status

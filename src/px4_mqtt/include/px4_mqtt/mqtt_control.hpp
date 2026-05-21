@@ -11,6 +11,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <px4_msgs/msg/vehicle_command.hpp>
 #include <px4_msgs/msg/trajectory_setpoint.hpp>
+#include <px4_msgs/msg/vehicle_local_position.hpp>
+#include <px4_msgs/msg/vehicle_status.hpp>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -41,6 +43,12 @@ private:
 	// Command processing
 	void process_mqtt_command(const std::string& topic, const std::string& payload);
 	void handle_command(const json& cmd);
+
+	// vehicle_local_position 回调，用于保存 heading
+	void vehicle_local_position_callback(const px4_msgs::msg::VehicleLocalPosition::UniquePtr msg);
+
+	// vehicle_status 回调，用于检测是否处于 OFFBOARD 模式
+	void vehicle_status_callback(const px4_msgs::msg::VehicleStatus::UniquePtr msg);
 	
 	// PX4 command publishing functions
 	void arm();
@@ -52,6 +60,10 @@ private:
 	void set_mode_auto_takeoff();
 	void publish_position_setpoint(float x, float y, float z, float yaw = 0.0f);
 	void publish_velocity_setpoint(float vx, float vy, float vz, float yaw = 0.0f);
+
+	// 发布机体坐标系速度设定值（body-frame）
+	// `vx_b` 前向正，`vy_b` 右正，`vz_b` 向下为正，`yaw_speed` 为偏航角速度（rad/s）
+	void publish_body_velocity_setpoint(float vx_b, float vy_b, float vz_b, float yaw_speed = 0.0f);
 	
 	// Helper functions
 	void publish_vehicle_command(uint32_t command, float param1 = 0.0f, float param2 = 0.0f,
@@ -62,6 +74,18 @@ private:
 	// Publishers
 	rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_pub_;
 	rclcpp::Publisher<px4_msgs::msg::TrajectorySetpoint>::SharedPtr trajectory_setpoint_command_pub_;
+
+	// Subscribe to vehicle local position to obtain current heading for body->NED transform
+	rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr vehicle_local_position_sub_;
+	px4_msgs::msg::VehicleLocalPosition vehicle_local_position_;
+	bool vehicle_local_position_received_ = false;
+
+	// Subscribe to vehicle status to detect OFFBOARD mode
+	rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehicle_status_sub_;
+	px4_msgs::msg::VehicleStatus vehicle_status_;
+	bool vehicle_status_received_ = false;
+	// true when PX4 reports nav_state == 14 (OFFBOARD)
+	bool vehicle_in_offboard_ = false;
 
 	// Timer for MQTT reconnection
 	rclcpp::TimerBase::SharedPtr mqtt_reconnect_timer_;

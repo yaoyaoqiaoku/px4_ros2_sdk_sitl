@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 启动PX4 SITL仿真
-gnome-terminal --window --title="PX4 SITL" -- bash -c "cd ~/PX4-Autopilot && PX4_GZ_WORLD=aruco make px4_sitl gz_x500_mono_cam; exec bash"
+gnome-terminal --tab --title="PX4 SITL" -- bash -c "export GZ_PARTITION=px4_sim && cd ~/PX4-Autopilot && PX4_GZ_WORLD=aruco make px4_sitl gz_x500_mono_cam; exec bash"
 
 # 等待PX4启动
 sleep 5

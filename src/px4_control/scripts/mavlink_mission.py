@@ -100,26 +100,27 @@ class MavlinkMission(Node):
     
     def waypoints_callback(self, msg):
         """接收航点数据并上传到PX4"""
-        if len(msg.data) % 9 != 0:
+        if len(msg.data) % 10 != 0:
             self.get_logger().error(
-                f"Invalid waypoint format! Expected multiple of 9 parameters, got {len(msg.data)}"
+                f"Invalid waypoint format! Expected multiple of 10 parameters (with optional speed), got {len(msg.data)}"
             )
             return
-        
-        # Parse waypoints
-        num_waypoints = len(msg.data) // 9
+
+        # Parse waypoints (now each waypoint has 10 floats: 9 standard fields + speed)
+        num_waypoints = len(msg.data) // 10
         waypoints = []
         for i in range(num_waypoints):
             wp = [
-                msg.data[i * 9 + 0],  # frame
-                msg.data[i * 9 + 1],  # command
-                msg.data[i * 9 + 2],  # lat
-                msg.data[i * 9 + 3],  # lon
-                msg.data[i * 9 + 4],  # alt
-                msg.data[i * 9 + 5],  # param1
-                msg.data[i * 9 + 6],  # param2
-                msg.data[i * 9 + 7],  # param3
-                math.nan if math.isnan(msg.data[i * 9 + 8]) else msg.data[i * 9 + 8]  # param4
+                msg.data[i * 10 + 0],  # frame
+                msg.data[i * 10 + 1],  # command
+                msg.data[i * 10 + 2],  # lat
+                msg.data[i * 10 + 3],  # lon
+                msg.data[i * 10 + 4],  # alt
+                msg.data[i * 10 + 5],  # param1
+                msg.data[i * 10 + 6],  # param2
+                msg.data[i * 10 + 7],  # param3
+                math.nan if math.isnan(msg.data[i * 10 + 8]) else msg.data[i * 10 + 8],  # param4
+                math.nan if math.isnan(msg.data[i * 10 + 9]) else msg.data[i * 10 + 9]   # speed (optional semantics)
             ]
             waypoints.append(wp)
         

@@ -346,11 +346,11 @@ ros2 launch px4_mqtt mqtt_home_control.launch.py
 速度控制
 
 {
-  "command": "velocity", 
+  "command": "velocity_body", 
   "vx": 1.0,
   "vy": 0.0,
   "vz": 0.0,
-  "yaw": 0.0     // 偏航速率  弧度每秒
+  "yaw_rate": 0.0     // 偏航速率  弧度每秒
 }
 
 舵机控制
